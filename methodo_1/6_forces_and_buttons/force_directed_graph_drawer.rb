@@ -4,19 +4,17 @@ require_relative 'graph'
 # open class for [x,y]
 require_relative 'my_array'
 
-class Springer
+class ForceDirectedGraphDrawer
+
+  attr_accessor :graph
+
   def initialize
-    puts "springer : force-directed placer"
+    puts "FDGD: force-directed graph drawer"
     @l0=80
     @c1=30
     @epsilon=10
     @damping=0.92
     @timestep=0.1
-  end
-
-  def place g,iter=1
-    #puts "running placement of #{g.id}"
-    algo(g,iter)
   end
 
   def dist a,b
@@ -58,7 +56,9 @@ class Springer
     [c*Math.cos(angle),c*Math.sin(angle)]
   end
 
-  def algo g, iter=2 #,l0=100,epsilon=10,damping=0.92,timestep=0.1
+  def run iter=2
+    return unless @graph
+
     step = 0
     total_kinetic_energy=1000
     next_pos={}
@@ -68,15 +68,15 @@ class Springer
       step+=1
       total_kinetic_energy = 0
 
-      for node in g.nodes
+      for node in graph.nodes
         net_force = Vector.new(0, 0)
 
-        for other in g.nodes-[node]
+        for other in graph.nodes-[node]
           rep = coulomb_repulsion( node, other)
           net_force += rep
         end
 
-        for edge in g.edges.select{|e| e.first==node or e.last==node}
+        for edge in graph.edges.select{|e| e.first==node or e.last==node}
           other = edge.last==node ? edge.first : edge.last
           attr = hooke_attraction(node, other) #, c1=30,@l0)
           net_force += attr
@@ -89,12 +89,14 @@ class Springer
       end
 
       #puts total_kinetic_energy
-
-      for node in g.nodes
-        #puts next_pos[node.pos]
+      yield if block_given?
+      for node in graph.nodes
         node.pos = next_pos[node.pos]
       end
     end
+    puts "algorithm end"
+    puts "reached epsilon" if total_kinetic_energy < @epsilon
+    puts "reached max iterations" if step==iter
   end
 
 end

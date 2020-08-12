@@ -1,5 +1,5 @@
 require 'gtk3'
-require_relative 'springer'
+require_relative 'force_directed_graph_drawer'
 
 class Canvas < Gtk::DrawingArea
   attr_accessor :running
@@ -9,11 +9,17 @@ class Canvas < Gtk::DrawingArea
     @running=false
     set_size_request(800,100)
     signal_connect('draw') do
-      redraw #if @running
+      redraw @graph #if @running
     end
   end
 
+  def clear cr
+    cr.set_source_rgb(0.1, 0.1, 0.1)
+    cr.paint
+  end
+
   def redraw graph=nil
+    @graph=graph
     cr = window.create_cairo_context
     cr.set_line_width(0.8)
 
@@ -21,14 +27,12 @@ class Canvas < Gtk::DrawingArea
     h = allocation.height
 
     cr.translate(w/2, h/2)
-    # clear
-    cr.set_source_rgb(0.1, 0.1, 0.1)
-    cr.paint
+
+    clear cr
 
     if graph
-
       cr.set_source_rgb(0.4, 0.4, 0.4)
-      graph.edges.each do |edge|
+      @graph.edges.each do |edge|
         n1,n2=*edge
         cr.move_to(n1.x,n1.y)
         cr.line_to(n2.x,n2.y)
@@ -36,7 +40,7 @@ class Canvas < Gtk::DrawingArea
       end
 
       cr.set_source_rgb(0.9, 0.5, 0.2)
-      graph.nodes.each do |node|
+      @graph.nodes.each do |node|
         cr.arc(node.x, node.y, 10, 0, 2.0 * Math::PI)
         cr.fill_preserve()
         cr.stroke
@@ -55,7 +59,7 @@ class Window < Gtk::Window
     set_border_width 10
     set_window_position :center
     set_destroy_callback
-    @springer=Springer.new
+    @algorithm=ForceDirectedGraphDrawer.new
 
     hbox = Gtk::Box.new(:horizontal, spacing=6)
     add hbox
@@ -129,23 +133,21 @@ class Window < Gtk::Window
   end
 
   def on_random_clicked button
-    puts '"random" clicked'
+    puts 'button "random" clicked'
     @graph=Graph.random(40)
     @canvas.running=true
     @canvas.redraw @graph
   end
 
   def on_run_clicked button
-    puts '"run" button was clicked'
+    puts 'button "run" clicked'
     @canvas.running=true
-    for i in 0..100
-      @springer.algo @graph
-      @canvas.redraw @graph
-    end
+    @algorithm.graph=@graph
+    @algorithm.run(iter=1000){@canvas.redraw @graph}
   end
 
   def on_stop_clicked button
-    puts '"stop" button was clicked'
+    puts 'button "stop" clicked'
   end
 
   def on_step_clicked button
@@ -153,7 +155,7 @@ class Window < Gtk::Window
   end
 
   def on_save_clicked button
-    puts '"save" button was clicked'
+    puts 'button "save" clicked'
   end
 
   def on_quit_clicked button

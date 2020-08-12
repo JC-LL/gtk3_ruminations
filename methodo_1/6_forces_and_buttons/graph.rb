@@ -1,10 +1,11 @@
+require_relative 'my_array'
 class Node
   attr_accessor :pos,:id,:radius,:velocity
-  def initialize param
-    @id=param.first
-    @pos=Vector.new param[1],param[2]
-    @radius=param[3] || 10
-    @velocity = (param.size>4) ? Vector.new(param[4],param[5]) :  Vector.new(0,0)
+  def initialize params
+    @id=params.first
+    @pos=Vector.new params[1],params[2]
+    @radius=params[3] || 10
+    @velocity = (params.size>4) ? Vector.new(params[4],params[5]) :  Vector.new(0,0)
   end
 
   def x=(v)
@@ -47,13 +48,18 @@ class Graph
     end
   end
 
+  def self.read_file filename
+    require 'sxp'
+    SXP.read
+  end
+
   def self.random(nbVertex,maxNbEdgesPerVertex=2)
     nodes,edges =[],[]
 
     (1..nbVertex).each do |i|
       id = "n#{i}".to_sym
-      pos = self.randomPos
-      radius = self.randBetween(10,20)
+      pos = self.random_pos
+      radius = self.rand_between(10,20)
       params = [id,pos,radius].flatten
       nodes << params
     end
@@ -69,7 +75,7 @@ class Graph
     return Graph.new :random,nodes,edges
   end
 
-  def printInfo
+  def print_info
     puts "graph info".center(40,"=")
     puts "#vertices".ljust(30,'.')+nodes.size.to_s
     puts "#edges".ljust(30,'.')+edges.size.to_s
@@ -79,13 +85,13 @@ class Graph
     end
   end
 
-  def self.randBetween min,max
+  def self.rand_between min,max
     (min..max).to_a.sample
   end
 
-  def self.randomPos(maxx=800,maxy=600)
+  def self.random_pos(maxx=800,maxy=600)
     x,y=maxx/2,maxy/2
-    [self.randBetween(-x,x),self.randBetween(-y,y)]
+    [self.rand_between(-x,x),self.rand_between(-y,y)]
   end
 
   def each_vertex &block
