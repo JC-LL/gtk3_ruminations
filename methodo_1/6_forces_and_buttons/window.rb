@@ -1,54 +1,7 @@
 require 'gtk3'
+
 require_relative 'force_directed_graph_drawer'
-
-class Canvas < Gtk::DrawingArea
-  attr_accessor :running
-  def initialize
-    super()
-
-    @running=false
-    set_size_request(800,100)
-    signal_connect('draw') do
-      redraw @graph #if @running
-    end
-  end
-
-  def clear cr
-    cr.set_source_rgb(0.1, 0.1, 0.1)
-    cr.paint
-  end
-
-  def redraw graph=nil
-    @graph=graph
-    cr = window.create_cairo_context
-    cr.set_line_width(0.8)
-
-    w = allocation.width
-    h = allocation.height
-
-    cr.translate(w/2, h/2)
-
-    clear cr
-
-    if graph
-      cr.set_source_rgb(0.4, 0.4, 0.4)
-      @graph.edges.each do |edge|
-        n1,n2=*edge
-        cr.move_to(n1.x,n1.y)
-        cr.line_to(n2.x,n2.y)
-        cr.stroke
-      end
-
-      cr.set_source_rgb(0.9, 0.5, 0.2)
-      @graph.nodes.each do |node|
-        cr.arc(node.x, node.y, 10, 0, 2.0 * Math::PI)
-        cr.fill_preserve()
-        cr.stroke
-      end
-    end
-
-  end
-end
+require_relative 'canvas'
 
 class Window < Gtk::Window
 
@@ -79,6 +32,15 @@ class Window < Gtk::Window
     button.signal_connect("clicked"){on_random_clicked(button)}
     vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
 
+    label = Gtk::Label.new("number of nodes : ")
+
+    vbox.pack_start(label,:expand => false, :fill => false, :padding => 0)
+
+    spinner = Gtk::SpinButton.new(1,50,1)
+    spinner.value= @nb_value || 20
+    spinner.signal_connect("value-changed"){on_spin_changed(spinner)}
+    vbox.pack_start(spinner,:expand => false, :fill => false, :padding => 0)
+
     button = Gtk::Button.new(:label => "run")
     button.signal_connect("clicked"){on_run_clicked(button)}
     vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
@@ -89,6 +51,14 @@ class Window < Gtk::Window
 
     button = Gtk::Button.new(:label => "step")
     button.signal_connect("clicked"){on_step_clicked(button)}
+    vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
+
+    button = Gtk::Button.new(:label => "shuffle")
+    button.signal_connect("clicked"){on_shuffle_clicked(button)}
+    vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
+
+    button = Gtk::Button.new(:label => "fit")
+    button.signal_connect("clicked"){on_fit_clicked(button)}
     vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
 
     button = Gtk::Button.new(:label => "save")
@@ -115,17 +85,14 @@ class Window < Gtk::Window
     filter_sexp.add_pattern("*.sxp")
     dialog.add_filter(filter_sexp)
 
-    filter_rb = Gtk::FileFilter.new
-    filter_rb.name = "ruby filter"
-    filter_rb.add_pattern("*.rb")
-    dialog.add_filter(filter_rb)
-
     dialog.show_all
 
     case dialog.run
     when Gtk::ResponseType::ACCEPT
       puts "filename = #{dialog.filename}"
       #puts "uri = #{dialog.uri}"
+      @graph=Graph.read_file dialog.filename
+      @canvas.redraw @graph
       dialog.destroy
     else
       dialog.destroy
@@ -134,7 +101,16 @@ class Window < Gtk::Window
 
   def on_random_clicked button
     puts 'button "random" clicked'
-    @graph=Graph.random(40)
+    @graph=Graph.random(@nb_nodes || 20)
+    @canvas.running=true
+    @canvas.redraw @graph
+  end
+
+  def on_spin_changed spinbutton
+    value=spinbutton.value
+    puts "spin button modified #{value}"
+    @nb_nodes=value.to_i
+    @graph=Graph.random(value.to_i)
     @canvas.running=true
     @canvas.redraw @graph
   end
@@ -151,11 +127,51 @@ class Window < Gtk::Window
   end
 
   def on_step_clicked button
-    puts '"step" button was clicked'
+    puts 'button "step" clicked'
+  end
+
+  def on_shuffle_clicked button
+    puts 'button "shuffle" clicked'
+    if @graph
+      @graph.shuffle
+      @canvas.redraw @graph
+    end
+  end
+
+  def on_fit_clicked button
+    puts 'button "fit" clicked'
+    if @graph
+    end
   end
 
   def on_save_clicked button
     puts 'button "save" clicked'
+    # if @graph
+    #   @graph.write_file @graph.id.to_s+".sexp"
+    # end
+    dialog=Gtk::FileChooserDialog.new(
+             :title => "choose",
+             :parent => self,
+             :action => Gtk::FileChooserAction::SAVE,
+				     :buttons => [[Gtk::Stock::SAVE, Gtk::ResponseType::ACCEPT],
+				                  [Gtk::Stock::CANCEL, Gtk::ResponseType::CANCEL]])
+    filter_sexp = Gtk::FileFilter.new
+    filter_sexp.name = "s-expr filter"
+    filter_sexp.add_pattern("*.sexp")
+    filter_sexp.add_pattern("*.sxp")
+    dialog.add_filter(filter_sexp)
+
+    dialog.show_all
+
+    case dialog.run
+    when Gtk::ResponseType::ACCEPT
+      puts "filename = #{dialog.filename}"
+      #puts "uri = #{dialog.uri}"
+      @graph.write_file dialog.filename
+      dialog.destroy
+    else
+      dialog.destroy
+    end
   end
 
   def on_quit_clicked button

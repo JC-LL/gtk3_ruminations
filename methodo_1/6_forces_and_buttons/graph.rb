@@ -1,4 +1,6 @@
 require_relative 'my_array'
+require_relative 'parser'
+
 class Node
   attr_accessor :pos,:id,:radius,:velocity
   def initialize params
@@ -49,8 +51,22 @@ class Graph
   end
 
   def self.read_file filename
-    require 'sxp'
-    SXP.read
+    Parser.new.parse filename
+  end
+
+  def write_file filename
+    puts "write '#{filename}'"
+    code=""
+    code << "(graph \"#{@id}\"\n"
+    nodes.each do |node|
+      code << "  (node \"#{node.id}\" (pos #{node.pos[0]} #{node.pos[1]}))\n"
+    end
+    code << "\n"
+    edges.each do |edge|
+      code << "  (edge \"#{edge.first.id}\" \"#{edge.last.id}\")\n"
+    end
+    code << ")\n"
+    File.open(filename ,'w'){|f| f.puts code}
   end
 
   def self.random(nbVertex,maxNbEdgesPerVertex=2)
@@ -73,6 +89,12 @@ class Graph
       end
     end
     return Graph.new :random,nodes,edges
+  end
+
+  def shuffle range=0..800
+    nodes.each do |node|
+      node.pos=Vector.new *Graph.random_pos
+    end
   end
 
   def print_info

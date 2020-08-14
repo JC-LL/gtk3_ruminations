@@ -3,6 +3,7 @@ require_relative 'graph'
 
 class Parser
   def parse filename
+    puts "parsing '#{filename}'"
     sexp=SXP.read IO.read(filename)
     parse_graph sexp
   end
@@ -28,7 +29,6 @@ class Parser
   end
 
   def parse_node sexp
-    puts "parsing node"
     sexp.shift
     name=sexp.shift
     pos=parse_pos(sexp.shift)
@@ -41,10 +41,9 @@ class Parser
   end
 
   def parse_edge sexp
-    puts "parsing edge"
     sexp.shift # 'edge'
     [sexp.shift, sexp.shift]
   end
 end
 
-pp Parser.new.parse("line.sexp")
+#pp Parser.new.parse("line.sexp")
