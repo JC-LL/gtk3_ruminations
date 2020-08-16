@@ -118,12 +118,14 @@ class Window < Gtk::Window
   def on_run_clicked button
     puts 'button "run" clicked'
     @canvas.running=true
+    @algorithm.stop=false
     @algorithm.graph=@graph
     @algorithm.run(iter=1000){@canvas.redraw @graph}
   end
 
   def on_stop_clicked button
     puts 'button "stop" clicked'
+    @algorithm.stop=true
   end
 
   def on_step_clicked button
