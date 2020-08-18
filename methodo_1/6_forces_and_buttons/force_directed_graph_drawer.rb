@@ -1,7 +1,4 @@
-
 require_relative 'graph'
-
-# open class for [x,y]
 require_relative 'vector'
 
 class ForceDirectedGraphDrawer
@@ -19,13 +16,10 @@ class ForceDirectedGraphDrawer
   end
 
   def dist a,b
-    res=Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2)
-    #puts "distance(#{a.id},#{b.id})=#{res}"
-    return res
+    Math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2)
   end
 
   def angle a,b
-    #puts "pos #{a.id} = #{a.pos}"
     if dist(a,b)!=0
       if b.x > a.x
         angle = Math.asin((b.y-a.y)/dist(a,b))
@@ -42,7 +36,6 @@ class ForceDirectedGraphDrawer
     angle = angle(a,b)
     dab = dist(a,b)
     c= -0.2*(a.radius*b.radius)/Math.sqrt(dab)
-    #puts "coulomb_repulsion(#{a.id},#{b.id})=#{c}"
     [c*Math.cos(angle),c*Math.sin(angle)]
   end
 
