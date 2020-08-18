@@ -7,7 +7,7 @@ class Canvas < Gtk::DrawingArea
     @running=false
     set_size_request(800,100)
     signal_connect('draw') do
-      redraw @graph #if @running
+      redraw @graph
     end
   end
 
@@ -39,7 +39,7 @@ class Canvas < Gtk::DrawingArea
 
       cr.set_source_rgb(0.9, 0.5, 0.2)
       @graph.nodes.each do |node|
-        cr.arc(shift.x+node.x*zoom_factor, shift.y+node.y*zoom_factor, 10, 0, 2.0 * Math::PI)
+        cr.arc(shift.x+node.x*zoom_factor, shift.y+node.y*zoom_factor, 10*zoom_factor, 0, 2.0 * Math::PI)
         cr.fill_preserve()
         cr.stroke
       end

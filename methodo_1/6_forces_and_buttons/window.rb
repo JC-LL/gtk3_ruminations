@@ -161,14 +161,10 @@ class Window < Gtk::Window
   def on_center_clicked button
     puts 'button "center" clicked'
     if @graph
-      enclosing_rect=get_enclosing_rect()
-      rect_center_x=(enclosing_rect.first.x+enclosing_rect.last.x)/2.0
-      rect_center_y=(enclosing_rect.first.y+enclosing_rect.last.y)/2.0
-      @canvas.redraw @graph,@zoom_factor,shift=Vector.new(-rect_center_x,-rect_center_y)
+      compute_shift get_enclosing_rect
+      @canvas.redraw @graph,@zoom_factor,@shift
     end
   end
-
-
 
   def on_zoom_clicked button
     puts 'button "zoom" clicked'
@@ -204,6 +200,11 @@ class Window < Gtk::Window
 
   def compute_zoom_and_shift
     enclosing_rect=get_enclosing_rect()
+    compute_zoom(enclosing_rect)
+    compute_shift(enclosing_rect)
+  end
+
+  def compute_zoom enclosing_rect
     min_x=enclosing_rect.first.x
     min_y=enclosing_rect.first.y
     max_x=enclosing_rect.last.x
@@ -214,7 +215,9 @@ class Window < Gtk::Window
     ratios=[(canvas_size.first.to_f)/graph_size.first,(canvas_size.last.to_f)/graph_size.last]
     @zoom_factor=ratios.min*0.8
     puts "zoom=#{@zoom_factor}"
+  end
 
+  def compute_shift enclosing_rect
     rect_center_x=(enclosing_rect.first.x+enclosing_rect.last.x)/2.0
     rect_center_y=(enclosing_rect.first.y+enclosing_rect.last.y)/2.0
     @shift=Vector.new(-rect_center_x,-rect_center_y)
@@ -222,9 +225,7 @@ class Window < Gtk::Window
 
   def on_save_clicked button
     puts 'button "save" clicked'
-    # if @graph
-    #   @graph.write_file @graph.id.to_s+".sexp"
-    # end
+
     dialog=Gtk::FileChooserDialog.new(
              :title => "choose",
              :parent => self,
@@ -243,6 +244,7 @@ class Window < Gtk::Window
     when Gtk::ResponseType::ACCEPT
       puts "filename = #{dialog.filename}"
       #puts "uri = #{dialog.uri}"
+      @graph.id=File.basename(dialog.filename,'.sexp')
       @graph.write_file dialog.filename
       dialog.destroy
     else

@@ -51,49 +51,48 @@ class ForceDirectedGraphDrawer
   end
 
   def run iter=2
-    Thread.new do
+    if @graph
+      Thread.new do
+        step = 0
+        total_kinetic_energy=1000
+        next_pos={}
 
-      return unless @graph
+        until total_kinetic_energy < @epsilon or step==iter do
 
-      step = 0
-      total_kinetic_energy=1000
-      next_pos={}
+          step+=1
+          total_kinetic_energy = 0
 
-      until total_kinetic_energy < @epsilon or step==iter do
+          for node in graph.nodes
+            net_force = Vector.new(0, 0)
 
-        step+=1
-        total_kinetic_energy = 0
+            for other in graph.nodes-[node]
+              rep = coulomb_repulsion( node, other)
+              net_force += rep
+            end
 
-        for node in graph.nodes
-          net_force = Vector.new(0, 0)
+            for edge in graph.edges.select{|e| e.first==node or e.last==node}
+              other = edge.last==node ? edge.first : edge.last
+              attr = hooke_attraction(node, other) #, c1=30,@l0)
+              net_force += attr
+            end
 
-          for other in graph.nodes-[node]
-            rep = coulomb_repulsion( node, other)
-            net_force += rep
+            # without damping, it moves forever
+            node.velocity = (node.velocity + net_force.scale(@timestep)).scale(@damping)
+            next_pos[node.pos] = node.pos + node.velocity.scale(@timestep)
+            total_kinetic_energy += node.radius * node.velocity.squared
           end
 
-          for edge in graph.edges.select{|e| e.first==node or e.last==node}
-            other = edge.last==node ? edge.first : edge.last
-            attr = hooke_attraction(node, other) #, c1=30,@l0)
-            net_force += attr
+          #puts total_kinetic_energy
+          yield if block_given?
+          for node in graph.nodes
+            node.pos = next_pos[node.pos]
           end
-
-          # without damping, it moves forever
-          node.velocity = (node.velocity + net_force.scale(@timestep)).scale(@damping)
-          next_pos[node.pos] = node.pos + node.velocity.scale(@timestep)
-          total_kinetic_energy += node.radius * node.velocity.squared
+          break if @stop
         end
-
-        #puts total_kinetic_energy
-        yield if block_given?
-        for node in graph.nodes
-          node.pos = next_pos[node.pos]
-        end
-        break if @stop
-      end
-      puts "algorithm end"
-      puts "reached epsilon" if total_kinetic_energy < @epsilon
-      puts "reached max iterations" if step==iter
+        puts "algorithm end"
+        puts "reached epsilon" if total_kinetic_energy < @epsilon
+        puts "reached max iterations" if step==iter
+      end #thread
     end
   end
 
