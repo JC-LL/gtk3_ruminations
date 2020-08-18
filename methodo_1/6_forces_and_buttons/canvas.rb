@@ -16,7 +16,7 @@ class Canvas < Gtk::DrawingArea
     cr.paint
   end
 
-  def redraw graph=nil
+  def redraw graph=nil,zoom_factor=1,shift=Vector.new(0,0)
     @graph=graph
     cr = window.create_cairo_context
     cr.set_line_width(0.8)
@@ -32,14 +32,14 @@ class Canvas < Gtk::DrawingArea
       cr.set_source_rgb(0.4, 0.4, 0.4)
       @graph.edges.each do |edge|
         n1,n2=*edge
-        cr.move_to(n1.x,n1.y)
-        cr.line_to(n2.x,n2.y)
+        cr.move_to(shift.x + n1.x*zoom_factor,shift.y + n1.y*zoom_factor)
+        cr.line_to(shift.x + n2.x*zoom_factor,shift.y + n2.y*zoom_factor)
         cr.stroke
       end
 
       cr.set_source_rgb(0.9, 0.5, 0.2)
       @graph.nodes.each do |node|
-        cr.arc(node.x, node.y, 10, 0, 2.0 * Math::PI)
+        cr.arc(shift.x+node.x*zoom_factor, shift.y+node.y*zoom_factor, 10, 0, 2.0 * Math::PI)
         cr.fill_preserve()
         cr.stroke
       end

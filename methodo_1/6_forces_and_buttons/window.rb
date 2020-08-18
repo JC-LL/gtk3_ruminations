@@ -13,6 +13,7 @@ class Window < Gtk::Window
     set_window_position :center
     set_destroy_callback
     @algorithm=ForceDirectedGraphDrawer.new
+    @zoom_factor=1
 
     hbox = Gtk::Box.new(:horizontal, spacing=6)
     add hbox
@@ -57,7 +58,19 @@ class Window < Gtk::Window
     button.signal_connect("clicked"){on_shuffle_clicked(button)}
     vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
 
-    button = Gtk::Button.new(:label => "fit")
+    button = Gtk::Button.new(:label => "center")
+    button.signal_connect("clicked"){on_center_clicked(button)}
+    vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
+
+    button = Gtk::Button.new(:label => "zoom+")
+    button.signal_connect("clicked"){on_zoom_clicked(button)}
+    vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
+
+    button = Gtk::Button.new(:label => "zoom-")
+    button.signal_connect("clicked"){on_unzoom_clicked(button)}
+    vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
+
+    button = Gtk::Button.new(:label => "zoom fit")
     button.signal_connect("clicked"){on_fit_clicked(button)}
     vbox.pack_start(button,:expand => false, :fill => false, :padding => 0)
 
@@ -93,6 +106,7 @@ class Window < Gtk::Window
       #puts "uri = #{dialog.uri}"
       @graph=Graph.read_file dialog.filename
       @canvas.redraw @graph
+      set_title @graph.id
       dialog.destroy
     else
       dialog.destroy
@@ -101,9 +115,10 @@ class Window < Gtk::Window
 
   def on_random_clicked button
     puts 'button "random" clicked'
+    set_title "random"
     @graph=Graph.random(@nb_nodes || 20)
     @canvas.running=true
-    @canvas.redraw @graph
+    @canvas.redraw @graph,@zoom_factor,@shift
   end
 
   def on_spin_changed spinbutton
@@ -120,7 +135,7 @@ class Window < Gtk::Window
     @canvas.running=true
     @algorithm.stop=false
     @algorithm.graph=@graph
-    @algorithm.run(iter=1000){@canvas.redraw @graph}
+    @algorithm.run(iter=1000){@canvas.redraw @graph,@zoom_factor,@shift}
   end
 
   def on_stop_clicked button
@@ -130,21 +145,74 @@ class Window < Gtk::Window
 
   def on_step_clicked button
     puts 'button "step" clicked'
+    @algorithm.run(iter=1){@canvas.redraw @graph}
   end
 
   def on_shuffle_clicked button
     puts 'button "shuffle" clicked'
     if @graph
       @graph.shuffle
-      @canvas.redraw @graph
+      @canvas.redraw @graph,@zoom_factor,@shift
+    end
+  end
+
+  def on_center_clicked button
+    puts 'button "center" clicked'
+    if @graph
+      enclosing_rect=get_enclosing_rect()
+      rect_center_x=(enclosing_rect.first.x+enclosing_rect.last.x)/2.0
+      rect_center_y=(enclosing_rect.first.y+enclosing_rect.last.y)/2.0
+      @canvas.redraw @graph,@zoom_factor,shift=Vector.new(-rect_center_x,-rect_center_y)
+    end
+  end
+
+  def get_enclosing_rect
+    min_x=@graph.nodes.min_by{|node| node.x}.x
+    min_y=@graph.nodes.min_by{|node| node.y}.y
+    max_x=@graph.nodes.max_by{|node| node.x}.x
+    max_y=@graph.nodes.max_by{|node| node.y}.y
+    [Vector.new(min_x,min_y),Vector.new(max_x,max_y)]
+  end
+
+  def on_zoom_clicked button
+    puts 'button "zoom" clicked'
+    if @graph
+      @zoom_factor*=1.2
+      @canvas.redraw @graph,@zoom_factor,@shift
+    end
+  end
+
+  def on_unzoom_clicked button
+    puts 'button "unzoom" clicked'
+    if @graph
+      @zoom_factor/=1.2
+      @canvas.redraw @graph,@zoom_factor,@shift
     end
   end
 
   def on_fit_clicked button
     puts 'button "fit" clicked'
     if @graph
+
+      enclosing_rect=get_enclosing_rect()
+      min_x=enclosing_rect.first.x
+      min_y=enclosing_rect.first.y
+      max_x=enclosing_rect.last.x
+      max_y=enclosing_rect.last.y
+
+      graph_size=[(max_x-min_x).abs,(max_y-min_y).abs]
+      canvas_size=[@canvas.allocation.width,@canvas.allocation.height]
+      ratios=[(canvas_size.first.to_f)/graph_size.first,(canvas_size.last.to_f)/graph_size.last]
+      @zoom_factor=ratios.min*0.8
+      puts "zoom=#{@zoom_factor}"
+
+      rect_center_x=(enclosing_rect.first.x+enclosing_rect.last.x)/2.0
+      rect_center_y=(enclosing_rect.first.y+enclosing_rect.last.y)/2.0
+      @shift=Vector.new(-rect_center_x,-rect_center_y)
+      @canvas.redraw @graph,@zoom_factor,@shift
     end
   end
+
 
   def on_save_clicked button
     puts 'button "save" clicked'

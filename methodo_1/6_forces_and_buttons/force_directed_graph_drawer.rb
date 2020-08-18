@@ -2,7 +2,7 @@
 require_relative 'graph'
 
 # open class for [x,y]
-require_relative 'my_array'
+require_relative 'vector'
 
 class ForceDirectedGraphDrawer
 

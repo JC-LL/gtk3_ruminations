@@ -1,4 +1,4 @@
-require_relative 'my_array'
+require_relative 'vector'
 require_relative 'parser'
 
 class Node
