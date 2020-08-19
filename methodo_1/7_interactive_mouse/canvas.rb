@@ -13,6 +13,7 @@ class Canvas < Gtk::DrawingArea
                      :pointer_motion_hint_mask]
 
     signal_connect("draw") do |_,cr|
+      clear(cr)
       redraw
     end
 
@@ -67,7 +68,7 @@ class Canvas < Gtk::DrawingArea
     #cr.translate(w/2, h/2)
     cr.translate(@shift.x,@shift.y)
 
-    clear cr
+    #clear cr
 
     cr.set_source_rgb(0.4, 0.4, 0.4)
 
